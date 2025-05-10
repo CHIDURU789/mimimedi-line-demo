@@ -1,62 +1,72 @@
-const express = require('express');
-const axios = require('axios');
-const bodyParser = require('body-parser');
-require('dotenv').config();
+import express from "express";
+import axios from "axios";
+import dotenv from "dotenv";
 
+dotenv.config();
 const app = express();
-app.use(bodyParser.json());
+app.use(express.json());
 
-// LINE Webhook エンドポイント
-app.post('/webhook', async (req, res) => {
-  try {
-    const events = req.body.events;
-    if (!events || events.length === 0) {
-      return res.status(200).send('No events');
-    }
+const LINE_ACCESS_TOKEN = process.env.LINE_CHANNEL_ACCESS_TOKEN;
+const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
 
-    const event = events[0];
-    if (event.type !== 'message' || event.message.type !== 'text') {
-      return res.status(200).send('Not a text message');
-    }
-
-    // ChatGPTへの問い合わせ
-    const gptRes = await axios.post('https://api.openai.com/v1/chat/completions', {
-      model: 'gpt-3.5-turbo',
-      messages: [
-        { role: 'system', content: 'あなたはペットの健康相談に詳しい獣医師です。' },
-        { role: 'user', content: event.message.text }
-      ]
-    }, {
-      headers: {
-        Authorization: `Bearer ${process.env.OPENAI_API_KEY}`,
-        'Content-Type': 'application/json'
-      }
-    });
-
-    const replyMessage = gptRes.data.choices[0].message.content;
-
-    // LINEに返信
-    await axios.post('https://api.line.me/v2/bot/message/reply', {
-      replyToken: event.replyToken,
-      messages: [{ type: 'text', text: replyMessage }]
-    }, {
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${process.env.LINE_CHANNEL_ACCESS_TOKEN}`
-      }
-    });
-
-    res.status(200).send('OK');
-  } catch (err) {
-    console.error('Webhook error:', err);
-    res.status(500).send('Internal Server Error');
+// LINEからのWebhookイベントを受け取るエンドポイント
+app.post("/webhook", async (req, res) => {
+  const events = req.body.events;
+  if (!events || events.length === 0) {
+    return res.status(200).send("No events");
   }
+
+  for (const event of events) {
+    if (event.type === "message" && event.message.type === "text") {
+      const userMessage = event.message.text;
+
+      try {
+        const completion = await axios.post(
+          "https://api.openai.com/v1/chat/completions",
+          {
+            model: "gpt-3.5-turbo",
+            messages: [{ role: "user", content: userMessage }],
+          },
+          {
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${OPENAI_API_KEY}`,
+            },
+          }
+        );
+
+        const replyMessage = completion.data.choices[0].message.content;
+
+        await axios.post(
+          "https://api.line.me/v2/bot/message/reply",
+          {
+            replyToken: event.replyToken,
+            messages: [{ type: "text", text: replyMessage }],
+          },
+          {
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${LINE_ACCESS_TOKEN}`,
+            },
+          }
+        );
+      } catch (error) {
+        console.error("Error handling message:", error.response?.data || error.message);
+      }
+    }
+  }
+
+  res.sendStatus(200);
 });
 
-// Cloud Run用にポート指定
-const PORT = process.env.PORT || 3000;
+// デフォルトのGETルート（確認用）
+app.get("/", (req, res) => {
+  res.send("Mimimedi LINE Bot is running!");
+});
+
+// ポート指定（Cloud Run用）
+const PORT = process.env.PORT || 8080;
 app.listen(PORT, () => {
-  console.log(`Mimimedi LINE bot running on port ${PORT}`);
+  console.log(`Server is running on port ${PORT}`);
 });
-
 
