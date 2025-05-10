@@ -5,6 +5,7 @@ require('dotenv').config();
 
 const app = express();
 
+// LINE チャネル設定
 const config = {
   channelAccessToken: process.env.LINE_CHANNEL_ACCESS_TOKEN,
   channelSecret: process.env.LINE_CHANNEL_SECRET,
@@ -18,42 +19,14 @@ app.post('/webhook', middleware(config), async (req, res) => {
     const results = await Promise.all(req.body.events.map(handleEvent));
     res.json(results);
   } catch (err) {
-    console.error(err);
+    console.error('Webhook error:', err);
     res.status(500).end();
   }
 });
 
-// メッセージイベント処理（OpenAIで応答）
+// メッセージイベント処理
 async function handleEvent(event) {
   if (event.type !== 'message' || event.message.type !== 'text') {
-    return Promise.resolve(null);
-  }
+    return Promise.resolve
 
-  // ChatGPT API呼び出し
-  const userMessage = event.message.text;
-  const openaiResponse = await axios.post(
-    'https://api.openai.com/v1/chat/completions',
-    {
-      model: 'gpt-3.5-turbo',
-      messages: [{ role: 'user', content: userMessage }],
-    },
-    {
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${process.env.OPENAI_API_KEY}`,
-      },
-    }
-  );
-
-  const aiReply = openaiResponse.data.choices[0].message.content.trim();
-
-  return client.replyMessage(event.replyToken, {
-    type: 'text',
-    text: aiReply,
-  });
-}
-
-const port = process.env.PORT || 3000;
-app.listen(port, () => {
-  console.log(`Listening on port ${port}`);
-});
+ 
