@@ -7,7 +7,6 @@ dotenv.config();
 const app = express();
 app.use(express.json());
 
-// LINE Webhook
 app.post('/webhook', async (req, res) => {
   const events = req.body.events;
 
@@ -15,7 +14,6 @@ app.post('/webhook', async (req, res) => {
     if (event.type === 'message' && event.message.type === 'text') {
       const userMessage = event.message.text;
 
-      // OpenAIに問い合わせ
       const gptRes = await axios.post(
         'https://api.openai.com/v1/chat/completions',
         {
@@ -31,7 +29,6 @@ app.post('/webhook', async (req, res) => {
 
       const replyMessage = gptRes.data.choices[0].message.content;
 
-      // LINEに返信
       await axios.post(
         'https://api.line.me/v2/bot/message/reply',
         {
@@ -55,3 +52,5 @@ const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
   console.log(`Mimimedi LINE bot running on port ${PORT}`);
 });
+
+     
