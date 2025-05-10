@@ -5,7 +5,6 @@ require('dotenv').config();
 
 const app = express();
 
-// LINE チャネル設定
 const config = {
   channelAccessToken: process.env.LINE_CHANNEL_ACCESS_TOKEN,
   channelSecret: process.env.LINE_CHANNEL_SECRET,
@@ -13,18 +12,17 @@ const config = {
 
 const client = new Client(config);
 
-// webhookエンドポイント
 app.post('/webhook', middleware(config), async (req, res) => {
   try {
-    const results = await Promise.all(req.body.events.map(handleEvent));
+    const events = req.body.events;
+    const results = await Promise.all(events.map(handleEvent));
     res.json(results);
   } catch (err) {
-    console.error('Webhook error:', err);
+    console.error('🌶️ Webhook error:', err);
     res.status(500).end();
   }
 });
 
-// メッセージイベント処理
 async function handleEvent(event) {
   if (event.type !== 'message' || event.message.type !== 'text') {
     return Promise.resolve(null);
@@ -53,19 +51,17 @@ async function handleEvent(event) {
       type: 'text',
       text: aiReply,
     });
-
-  } catch (err) {
-    console.error('OpenAI API Error:', err.response?.data || err.message);
-
+  } catch (error) {
+    console.error('🔥 OpenAI Error:', error?.response?.data || error.message);
     return client.replyMessage(event.replyToken, {
       type: 'text',
-      text: '申し訳ありません。現在AIの応答がうまくいきませんでした。しばらくして再度お試しください。',
+      text: 'AIからの応答に失敗しました🙇‍♀️',
     });
   }
 }
 
-// ポート設定（Cloud RunではPORTが自動設定される）
 const port = process.env.PORT || 3000;
 app.listen(port, () => {
-  console.log(`Listening on port ${port}`);
+  console.log(`✅ Listening on port ${port}`);
 });
+
