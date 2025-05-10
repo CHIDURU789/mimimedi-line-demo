@@ -1,3 +1,13 @@
+import express from 'express';
+import axios from 'axios';
+import dotenv from 'dotenv';
+
+dotenv.config();
+
+const app = express();
+app.use(express.json());
+
+// LINE Webhook
 app.post('/webhook', async (req, res) => {
   const events = req.body.events;
 
@@ -41,4 +51,7 @@ app.post('/webhook', async (req, res) => {
   res.sendStatus(200);
 });
 
-
+const PORT = process.env.PORT || 3000;
+app.listen(PORT, () => {
+  console.log(`Mimimedi LINE bot running on port ${PORT}`);
+});
