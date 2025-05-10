@@ -27,6 +27,45 @@ app.post('/webhook', middleware(config), async (req, res) => {
 // メッセージイベント処理
 async function handleEvent(event) {
   if (event.type !== 'message' || event.message.type !== 'text') {
-    return Promise.resolve
+    return Promise.resolve(null);
+  }
 
- 
+  const userMessage = event.message.text;
+
+  try {
+    const openaiResponse = await axios.post(
+      'https://api.openai.com/v1/chat/completions',
+      {
+        model: 'gpt-3.5-turbo',
+        messages: [{ role: 'user', content: userMessage }],
+      },
+      {
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${process.env.OPENAI_API_KEY}`,
+        },
+      }
+    );
+
+    const aiReply = openaiResponse.data.choices[0].message.content.trim();
+
+    return client.replyMessage(event.replyToken, {
+      type: 'text',
+      text: aiReply,
+    });
+
+  } catch (err) {
+    console.error('OpenAI API Error:', err.response?.data || err.message);
+
+    return client.replyMessage(event.replyToken, {
+      type: 'text',
+      text: '申し訳ありません。現在AIの応答がうまくいきませんでした。しばらくして再度お試しください。',
+    });
+  }
+}
+
+// ポート設定（Cloud RunではPORTが自動設定される）
+const port = process.env.PORT || 3000;
+app.listen(port, () => {
+  console.log(`Listening on port ${port}`);
+});
