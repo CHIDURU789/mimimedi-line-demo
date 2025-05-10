@@ -1,15 +1,17 @@
 FROM node:18
 
-# アプリ作業ディレクトリを設定
+# 作業ディレクトリの設定
 WORKDIR /app
 
-# 必要ファイルをコピー
-COPY package.json ./
+# 依存ファイルをコピーしてインストール
+COPY package*.json ./
 RUN npm install
 
+# アプリケーションの全コードをコピー
 COPY . .
 
-# ポート番号指定（Cloud Runはポート3000で自動マッピング）
+# Cloud Run のデフォルトポート
 EXPOSE 3000
 
-CMD ["npm", "start"]
+# アプリの起動コマンドを明示的に指定
+CMD ["node", "index.js"]
