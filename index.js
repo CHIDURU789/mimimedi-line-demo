@@ -5,6 +5,7 @@ require('dotenv').config();
 
 const app = express();
 
+// LINEチャネル設定
 const config = {
   channelAccessToken: process.env.LINE_CHANNEL_ACCESS_TOKEN,
   channelSecret: process.env.LINE_CHANNEL_SECRET,
@@ -12,16 +13,18 @@ const config = {
 
 const client = new Client(config);
 
+// webhookエンドポイント
 app.post('/webhook', middleware(config), async (req, res) => {
   try {
     const results = await Promise.all(req.body.events.map(handleEvent));
     res.json(results);
   } catch (err) {
-    console.error('Webhook Error:', err);
+    console.error('エラー:', err);
     res.status(500).end();
   }
 });
 
+// メッセージイベント処理
 async function handleEvent(event) {
   if (event.type !== 'message' || event.message.type !== 'text') {
     return Promise.resolve(null);
@@ -33,7 +36,7 @@ async function handleEvent(event) {
     const openaiResponse = await axios.post(
       'https://api.openai.com/v1/chat/completions',
       {
-        model: 'gpt-3.5-turbo',  // ← ここを gpt-3.5 に
+        model: 'gpt-3.5-turbo',
         messages: [{ role: 'user', content: userMessage }],
       },
       {
@@ -50,11 +53,12 @@ async function handleEvent(event) {
       type: 'text',
       text: aiReply,
     });
+
   } catch (error) {
-    console.error('OpenAI API Error:', error.response?.data || error.message);
+    console.error('OpenAI APIエラー:', error.message);
     return client.replyMessage(event.replyToken, {
       type: 'text',
-      text: 'すみません、AI応答に失敗しました。',
+      text: 'ごめんなさい。現在お答えできません🙏',
     });
   }
 }
