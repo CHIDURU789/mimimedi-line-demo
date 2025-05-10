@@ -30,29 +30,39 @@ async function handleEvent(event) {
     return Promise.resolve(null);
   }
 
-  const userMessage = event.message.text;
+ const userMessage = event.message.text;
 
-  try {
-    const openaiResponse = await axios.post(
-      'https://api.openai.com/v1/chat/completions',
-      {
-        model: 'gpt-3.5-turbo',
-        messages: [{ role: 'user', content: userMessage }],
+try {
+  const openaiResponse = await axios.post(
+    'https://api.openai.com/v1/chat/completions',
+    {
+      model: 'gpt-3.5-turbo',
+      messages: [{ role: 'user', content: userMessage }],
+    },
+    {
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${process.env.OPENAI_API_KEY}`,
       },
-      {
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${process.env.OPENAI_API_KEY}`,
-        },
-      }
-    );
+    }
+  );
 
-    const aiReply = openaiResponse.data.choices[0].message.content.trim();
+  const aiReply = openaiResponse.data.choices[0].message.content.trim();
 
-    return client.replyMessage(event.replyToken, {
-      type: 'text',
-      text: aiReply,
-    });
+  return client.replyMessage(event.replyToken, {
+    type: 'text',
+    text: aiReply,
+  });
+} catch (error) {
+  console.error('OpenAI APIエラー:', error.response?.data || error.message);
+
+  // LINE側にエラーを通知（任意）
+  return client.replyMessage(event.replyToken, {
+    type: 'text',
+    text: 'ごめんなさい、現在システムエラーが発生しています。',
+  });
+}
+
 
   } catch (error) {
     console.error('OpenAI APIエラー:', error.message);
